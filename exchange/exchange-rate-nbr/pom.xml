@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!--
+     Copyright (c) 2018, László-Róbert Albert.
+
+     Licensed under the Apache License, Version 2.0 (the "License"); you may not
+     use this file except in compliance with the License. You may obtain a copy of
+     the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+     WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+     License for the specific language governing permissions and limitations under
+     the License.
+
+     Contributors: @albertlr
+    -->
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>javamoney-exchange</artifactId>
+        <groupId>org.javamoney.lib</groupId>
+        <version>1.0</version>
+    </parent>
+
+    <artifactId>exchange-rate-nbr</artifactId>
+    <packaging>jar</packaging>
+
+    <name>JavaMoney Exchange National Bank of Romania Rate Provider</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <generated.sources>${project.build.directory}/generated-sources/java</generated.sources>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <failOnError>false</failOnError>
+                </configuration>
+            </plugin>
+            <!-- Use build-helper-maven-plugin to get the 'timestamp-property' goal to store the current time in -->
+            <!-- 'yyyy' format as the 'current.year' maven proeprty -->
+            <!-- Note: the exchange rates of National Bank of Romania are hold per year basis -->
+            <!-- @see http://www.bnr.ro/Exchange-rate-list-in-XML-format-7512.aspx -->
+            <!-- @see https://stackoverflow.com/a/39307242 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.12</version>
+                <executions>
+                    <execution>
+                        <id>timestamp-property</id>
+                        <goals>
+                            <goal>timestamp-property</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <name>current.year</name>
+                            <pattern>yyyy</pattern>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <configuration>
+                    <!--<uri>http://www.bnr.ro/nbrfxrates.xml</uri>-->
+                    <!--<uri>http://www.bnr.ro/nbrfxrates10days.xml</uri>-->
+                    <uri>http://www.bnr.ro/files/xml/years/nbrfxrates${current.year}.xml</uri>
+                    <!--<uri>http://www.bnr.ro/files/xml/years/nbrfxrates2017.xml</uri>-->
+                    <overwrite>true</overwrite>
+                    <outputDirectory>src/main/resources/java-money/defaults/NBR</outputDirectory>
+                    <outputFileName>nbrfxrates${current.year}.xml</outputFileName>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>xjc</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${generated.sources}</outputDirectory>
+
+                    <!-- Set the package of the generated code -->
+                    <packageName>org.javamoney.moneta.convert.nbr.jaxb</packageName>
+
+                    <!-- Define the directory where we should find the DTD files -->
+                    <sources>
+                        <source>${project.basedir}/src/main/resources/java-money/defaults/NBR/xsd</source>
+                    </sources>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <!-- compile everything to ensure module-info contains right entries -->
+                            <!-- required when JAVA_HOME is JDK 8 or below -->
+                            <jdkToolchain>
+                                <version>9</version>
+                            </jdkToolchain>
+                            <release>9</release>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>base-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <!-- recompile everything for target VM except the module-info.java -->
+                        <configuration>
+                            <source>${maven.compile.sourceLevel}</source>
+                            <target>${maven.compile.targetLevel}</target>
+                            <excludes>
+                                <exclude>org/javamoney/moneta/convert/nbr/module-info.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <!-- API and RI -->
+        <dependency>
+            <groupId>javax.money</groupId>
+            <artifactId>money-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.javamoney.moneta</groupId>
+            <artifactId>moneta-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.javamoney.moneta</groupId>
+            <artifactId>moneta-convert</artifactId>
+        </dependency>
+
+        <!-- JAXB support -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <!-- needed at build time by jaxb2-maven-plugin -->
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>javax.activation-api</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+
+        <!-- OSGI support -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation</artifactId>
+            <scope>provided</scope>
+            <version>${osgi.annotation.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.compendium</artifactId>
+            <scope>provided</scope>
+            <version>${osgi.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <version>${osgi.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>
