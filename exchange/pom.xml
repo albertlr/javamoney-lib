@@ -31,7 +31,8 @@
 	<modules>
 		<module>exchange-rate-yahoo</module>
 		<module>exchange-rate-frb</module>
-	</modules>
+        <module>exchange-rate-nbr</module>
+    </modules>
 
 	<build>
 		<pluginManagement>
