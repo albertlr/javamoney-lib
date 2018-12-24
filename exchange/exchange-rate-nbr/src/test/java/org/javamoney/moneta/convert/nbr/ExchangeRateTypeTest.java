@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *
- * Contributors: @atsticks, @keilw, @otjava
+ * Contributors: @albertlr
  */
 package org.javamoney.moneta.convert.nbr;
 
@@ -29,14 +29,14 @@ import static org.testng.Assert.assertTrue;
 public class ExchangeRateTypeTest {
 
     @Test
-    public void shouldReturnsYahooRateProvider() {
+    public void shouldReturnsNbrRateProvider() {
         ExchangeRateProvider prov = MonetaryConversions.getExchangeRateProvider("NBR");
         assertTrue(nonNull(prov));
         assertEquals(NbrRateProvider.class, prov.getClass());
     }
 
     @Test
-    public void shouldReturnsYahooRateProviderFromType() {
+    public void shouldReturnsNbrRateProviderFromType() {
         ExchangeRateProvider prov = MonetaryConversions.getExchangeRateProvider(NbrExchangeRateType.NBR);
         assertTrue(nonNull(prov));
         assertEquals(NbrRateProvider.class, prov.getClass());
