@@ -121,7 +121,7 @@ class NbrRateReadingHandler {
      * @param value      The exchange rate that we recive from the bank
      * @return Returns the correct rate factor {@code 1 RON = x CURRENCY}
      */
-    private static NumberValue computeFactor(BigInteger multiplier, BigDecimal value) {
+    static NumberValue computeFactor(BigInteger multiplier, BigDecimal value) {
         NumberValue rateValue = DefaultNumberValue.of(value);
         // eg: 100 HUF = 1.4434 RON
         // => 1 HUF = 1.4434 / 100 = 0.014434
