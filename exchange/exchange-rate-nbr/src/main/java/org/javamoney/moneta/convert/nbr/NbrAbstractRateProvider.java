@@ -78,7 +78,7 @@ public abstract class NbrAbstractRateProvider extends AbstractRateProvider imple
     protected final CountDownLatch loadLock = new CountDownLatch(1);
 
     /**
-     * A protected helper method to multiply 2 {@link NumberValue} types.<br>
+     * A protected helper method to multiply 2 {@link NumberValue} types.
      * If either of the values is <code>null</code> an {@link ArithmeticException} is thrown.
      *
      * @param multiplicand the first value to be multiplied
@@ -87,6 +87,18 @@ public abstract class NbrAbstractRateProvider extends AbstractRateProvider imple
      */
     public static NumberValue multiply(NumberValue multiplicand, NumberValue multiplier) {
         return AbstractRateProvider.multiply(multiplicand, multiplier);
+    }
+
+    /**
+     * A protected helper method to divide 2 {@link NumberValue} types.
+     * If either of the values is <code>null</code> an {@link ArithmeticException} is thrown.
+     *
+     * @param dividend the first value to be divided
+     * @param divisor  the value to be divided by
+     * @return the result of the division as {@link NumberValue}
+     */
+    public static NumberValue divide(NumberValue dividend, NumberValue divisor) {
+        return AbstractRateProvider.divide(dividend, divisor);
     }
 
     NbrAbstractRateProvider(ProviderContext context) {

@@ -23,6 +23,8 @@ import org.javamoney.moneta.convert.ExchangeRateBuilder;
 import org.javamoney.moneta.convert.nbr.jaxb.DataSet;
 import org.javamoney.moneta.convert.nbr.jaxb.LTCube;
 import org.javamoney.moneta.spi.DefaultNumberValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.money.Monetary;
 import javax.money.NumberValue;
@@ -43,9 +45,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.activation.DataSource;
 
 class NbrRateReadingHandler {
+    private static final Logger log = LoggerFactory.getLogger(NbrRateReadingHandler.class);
 
     private final Map<LocalDate, Map<String, ExchangeRate>> excangeRates;
 
@@ -58,7 +60,7 @@ class NbrRateReadingHandler {
     }
 
     void parse(final InputStream stream) throws JAXBException, ParseException {
-        final String nbrDtoPackage = DataSet.class.getPackageName();
+        final String nbrDtoPackage = DataSet.class.getPackage().getName();
         final Unmarshaller unmarshaller = JAXBContext.newInstance(nbrDtoPackage).createUnmarshaller();
         DataSet dataSet = (DataSet) unmarshaller.unmarshal(stream);
 
@@ -68,11 +70,7 @@ class NbrRateReadingHandler {
                     cube.getRate().stream()
                             // only for currencies that are recognised by our Monetary system
                             .filter(rate -> Monetary.getCurrency(rate.getCurrency()) != null)
-                            .forEach(
-                                    rate -> {
-                                        addRate(date, rate);
-                                    }
-                            );
+                            .forEach(rate -> addRate(date, rate));
                 }
         );
     }
@@ -95,18 +93,48 @@ class NbrRateReadingHandler {
                 this.excangeRates.putIfAbsent(date, rateMap);
             }
         }
-        System.out.printf("add rate %s %s = %s %s :: %s %n", (rateInfo.getMultiplier() == null ? 1 : rateInfo.getMultiplier()),
-                rateInfo.getCurrency(), exchangeRate.getFactor(), NbrAbstractRateProvider.BASE_CURRENCY, exchangeRate);
+        if (log.isTraceEnabled()) {
+            log.trace("add rate {} {} = {} {} @ {} :: {}",
+                    (rateInfo.getMultiplier() == null ? 1 : rateInfo.getMultiplier()),
+                    rateInfo.getCurrency(), rateInfo.getValue(), NbrAbstractRateProvider.BASE_CURRENCY,
+                    date, exchangeRate);
+        }
         rateMap.put(rateInfo.getCurrency(), exchangeRate);
     }
 
-    private NumberValue computeFactor(BigInteger multiplier, BigDecimal value) {
+    /**
+     * Compute the correct exchange rate factor.
+     * <p>
+     * The NBR exchange rate is given as
+     * <pre>
+     * 1 EUR    = 4.6571 RON
+     * 100 HUF  = 1.4434 RON
+     * </pre>
+     * but the Java Money exchange rate need to be in the following format
+     * <pre>
+     * 1 RON = 0.214725902385605 EUR
+     * 1 RON = 69.2808646 HUF
+     * </pre>
+     * </p>
+     *
+     * @param multiplier The multiplier. <code>null</code> means that default, <code>1</code>, is used.
+     * @param value      The exchange rate that we recive from the bank
+     * @return Returns the correct rate factor {@code 1 RON = x CURRENCY}
+     */
+    private static NumberValue computeFactor(BigInteger multiplier, BigDecimal value) {
         NumberValue rateValue = DefaultNumberValue.of(value);
+        // eg: 100 HUF = 1.4434 RON
+        // => 1 HUF = 1.4434 / 100 = 0.014434
+        // => 1 RON = 100 / 1.4434 HUF = 69.2808646 HUF
+
+        // eg: 1 EUR = 4.6571 RON
+        // => 1 RON = 1 / 4.6571 EUR = 0.214725902385605 EUR
         if (multiplier == null) {
-            return rateValue;
-        } else {
-            NumberValue nvmultiplier = DefaultNumberValue.of(multiplier);
-            return NbrAbstractRateProvider.multiply(rateValue, nvmultiplier);
+            multiplier = BigInteger.ONE;
         }
+
+        NumberValue nbrMultiplier = DefaultNumberValue.of(multiplier);
+        return NbrAbstractRateProvider.divide(nbrMultiplier, rateValue);
     }
+
 }
